@@ -223,7 +223,7 @@
       </button>
       <button class="mode extreme" data-mode="extreme">
         <span class="mname">🔥 Extreme</span>
-        <span class="mdesc">You only get the first 2 seconds. Good luck.</span>
+        <span class="mdesc">You hear the first 2 seconds once. Tap ▶ to replay it.</span>
       </button>
     </div>
     <p class="note" id="refreshNote"></p>
@@ -520,11 +520,14 @@
   audio.addEventListener('timeupdate', () => {
     if (!clipActive() && audio.duration) $('#prog').style.width = (100 * audio.currentTime / audio.duration) + '%';
   });
-  // Extreme mode: keep jumping back to the start once the clip passes 2 seconds.
+  // Extreme mode: stop the song once the clip reaches 2 seconds (no looping).
   // Checked every 25ms because 'timeupdate' only fires about 4 times a second.
   setInterval(() => {
     if (!clipActive()) return;
-    if (!audio.paused && audio.currentTime >= CLIP_SECONDS) audio.currentTime = 0;
+    if (!audio.paused && audio.currentTime >= CLIP_SECONDS) {
+      audio.pause();
+      if (!listening) $('#micStatus').textContent = 'Clip over. Tap ▶ to hear it again.';
+    }
     $('#prog').style.width = Math.min(100, 100 * audio.currentTime / CLIP_SECONDS) + '%';
   }, 25);
   audio.addEventListener('error', () => {
@@ -532,7 +535,14 @@
     if (!roundOver) { $('#micStatus').textContent = 'That preview wouldn\'t load, skipping…'; setTimeout(nextRound, 800); }
   });
 
-  function togglePlay() { if (audio.paused) audio.play().catch(() => {}); else audio.pause(); }
+  function togglePlay() {
+    if (audio.paused) {
+      // in Extreme, pressing play replays the 2-second clip from the start
+      if (clipActive() && audio.currentTime >= CLIP_SECONDS - 0.05) audio.currentTime = 0;
+      if (clipActive() && $('#micStatus').textContent.startsWith('Clip over')) $('#micStatus').textContent = '';
+      audio.play().catch(() => {});
+    } else audio.pause();
+  }
   $('#playBtn').addEventListener('click', togglePlay);
 
   // volume
@@ -674,6 +684,8 @@
 
   function endRound(result, guessText) {
     roundOver = true;
+    // Extreme: after the guess, let the rest of the song play so you hear what it was
+    if (mode === 'extreme' && audio.paused) audio.play().catch(() => {});
     stopListening();
     hideSugg();
     stats.played++;
