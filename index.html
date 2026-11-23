@@ -151,6 +151,13 @@
   .singlesbox{margin-top:4px}
   .singlesbox summary{cursor:pointer;color:var(--muted);font-size:14px;padding:6px 0 10px}
   .singlesbox.disabled{opacity:.4;pointer-events:none}
+  .credits{margin-top:28px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.55;text-align:center}
+  .credits p{margin:0 0 10px}
+  .credits b{color:var(--text)}
+  .credits a{color:var(--gold)}
+  .credits details{margin:0 0 12px}
+  .credits summary{cursor:pointer;color:var(--text)}
+  .credits ul{text-align:left;margin:10px auto 0;padding-left:18px;max-width:520px;max-height:220px;overflow:auto}
   .note{font-size:12px;color:var(--muted);text-align:center;margin-top:18px;line-height:1.5}
   .err{color:var(--bad)}
 </style>
@@ -252,7 +259,15 @@
     </div>
   </section>
 
-  <p class="note">Song previews, album art and info come from Apple's public iTunes catalog.</p>
+  <footer class="credits">
+    <p><b>All music by Drake.</b> Every song, recording and album cover in this game belongs to Drake and his record labels. Each song's official copyright line is shown when it's revealed.</p>
+    <details id="labelBox" class="hidden">
+      <summary>Label &amp; copyright credits (<span id="labelCount">0</span>)</summary>
+      <ul id="labelList"></ul>
+    </details>
+    <p>Song previews, artwork and track info are provided by the <a href="https://performance-partners.apple.com/search-api" target="_blank" rel="noopener">Apple iTunes Search API</a>. Every song links to Apple Music and Spotify, where you can stream or buy the full track.</p>
+    <p>This is an unofficial fan-made game, made for fun. It is not affiliated with, sponsored or endorsed by Drake, his labels, Apple or Spotify.</p>
+  </footer>
 </div>
 
 <!-- Result modal -->
@@ -277,7 +292,7 @@
 <script>
 (() => {
   const ARTIST_ID = 271256;           // Drake's iTunes artist ID
-  const CACHE_KEY = 'drakeGuess_catalog_v2';
+  const CACHE_KEY = 'drakeGuess_catalog_v3';
   const CACHE_MS  = 24 * 60 * 60 * 1000;
 
   const $ = s => document.querySelector(s);
@@ -432,7 +447,8 @@
         art: (t.artworkUrl100 || col.artworkUrl100 || '').replace(/\/\d+x\d+bb\./, '/600x600bb.'),
         preview: t.previewUrl,
         link: t.trackViewUrl || col.collectionViewUrl || '',
-        cid: t.collectionId
+        cid: t.collectionId,
+        copyright: (col.copyright || t.copyright || '').trim()
       };
       const prev = byKey.get(key);
       if (!prev || better(song, prev)) byKey.set(key, song);
@@ -602,6 +618,13 @@
   $('#allOff').addEventListener('click', () => setAllAlbums(false));
   $('#optSingles').addEventListener('change', () => { lsSet('drakeGuess_singles', singlesOn() ? '1' : '0'); updateCounts(); });
 
+  function renderCredits() {
+    const lines = [...new Set(catalog.map(s => s.copyright).filter(Boolean))].sort((a, b) => b.localeCompare(a));
+    $('#labelCount').textContent = lines.length;
+    $('#labelList').innerHTML = lines.map(l => `<li>${esc(l)}</li>`).join('');
+    $('#labelBox').classList.toggle('hidden', !lines.length);
+  }
+
   function setTab(name) {
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
     $('#tabPlay').classList.toggle('hidden', name !== 'play');
@@ -690,7 +713,8 @@
       s.trackNo ? ['Track', `${s.trackNo}${s.trackCount ? ' of ' + s.trackCount : ''}${s.discCount > 1 ? ` · Disc ${s.disc}` : ''}`] : null,
       ['Length', fmtTime(s.ms)],
       s.genre ? ['Genre', s.genre] : null,
-      s.explicit ? ['Rating', 'Explicit'] : null
+      s.explicit ? ['Rating', 'Explicit'] : null,
+      s.copyright ? ['Credit', s.copyright] : null
     ].filter(Boolean);
     $('#mGrid').innerHTML = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('');
     $('#mApple').href = s.link || `https://music.apple.com/search?term=${encodeURIComponent('Drake ' + s.title)}`;
@@ -851,6 +875,7 @@
       catalog = data.songs;
       $('#countTotal').textContent = catalog.length;
       renderAlbums();
+      renderCredits();
       $('#refreshNote').innerHTML = data.failed
         ? `Some releases didn't load (Apple rate-limits requests). <a href="#" id="reload" style="color:var(--gold)">Reload</a>`
         : `Catalog cached for 24h. <a href="#" id="reload" style="color:var(--gold)">Refresh now</a>`;
