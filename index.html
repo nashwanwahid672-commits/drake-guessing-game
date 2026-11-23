@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guess the Drake Song</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0b; --panel:#141416; --panel2:#1c1c1f; --line:#2a2a2e;
+    --text:#f3f1ec; --muted:#9a978f; --gold:#d9b25f; --gold2:#f1d38f;
+    --good:#3ccf7a; --bad:#ff5a5f; --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body{min-height:100vh;background:
+    radial-gradient(900px 500px at 50% -10%, rgba(217,178,95,.16), transparent 60%),
+    var(--bg)}
+  button,input{font:inherit;color:inherit}
+  .wrap{max-width:640px;margin:0 auto;padding:20px 18px 60px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+  h1{font-family:"Archivo Black",Inter,sans-serif;font-size:clamp(22px,5vw,30px);letter-spacing:.5px;margin:0;line-height:1.05}
+  h1 span{color:var(--gold)}
+  .stats{display:flex;gap:8px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 12px;text-align:center;min-width:64px}
+  .stat b{display:block;font-size:18px}
+  .stat small{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.8px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+  .hidden{display:none!important}
+  .center{text-align:center}
+  .muted{color:var(--muted)}
+  .btn{border:0;border-radius:999px;padding:12px 22px;font-weight:700;cursor:pointer;transition:transform .08s,filter .15s,background .15s}
+  .btn:active{transform:scale(.97)}
+  .btn-gold{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1408}
+  .btn-gold:hover{filter:brightness(1.07)}
+  .btn-ghost{background:var(--panel2);border:1px solid var(--line)}
+  .btn-ghost:hover{background:#25252a}
+  .spinner{width:42px;height:42px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--gold);animation:spin 0.9s linear infinite;margin:10px auto 16px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loadbar{height:6px;background:var(--panel2);border-radius:99px;overflow:hidden;margin-top:14px}
+  .loadbar i{display:block;height:100%;width:0;background:var(--gold);transition:width .3s}
+  label.check{display:flex;align-items:center;gap:10px;justify-content:center;margin:18px 0;color:var(--muted);cursor:pointer}
+  label.check input{width:18px;height:18px;accent-color:var(--gold)}
+
+  /* player */
+  .viz{height:120px;display:flex;align-items:flex-end;justify-content:center;gap:5px;margin:4px 0 18px}
+  .viz span{width:8px;border-radius:4px 4px 2px 2px;background:linear-gradient(180deg,var(--gold2),var(--gold));height:20%;animation:bounce 1s ease-in-out infinite}
+  .viz.paused span{animation-play-state:paused;opacity:.45}
+  @keyframes bounce{0%,100%{height:15%}50%{height:var(--h,80%)}}
+  .qmark{font-family:"Archivo Black";font-size:15px;letter-spacing:2px;color:var(--muted);text-align:center;margin-bottom:6px}
+  .progress{height:5px;background:var(--panel2);border-radius:99px;overflow:hidden}
+  .progress i{display:block;height:100%;width:0;background:var(--text);opacity:.8}
+  .controls{display:flex;align-items:center;gap:14px;margin:16px 0 4px}
+  .play{width:54px;height:54px;border-radius:50%;border:0;background:var(--text);color:#111;display:grid;place-items:center;cursor:pointer;flex:none}
+  .play svg{width:22px;height:22px}
+  .vol{display:flex;align-items:center;gap:10px;flex:1}
+  .vol svg{width:20px;height:20px;color:var(--muted);flex:none}
+  input[type=range]{flex:1;accent-color:var(--gold);height:4px}
+  .guessrow{position:relative;display:flex;gap:8px;margin-top:22px}
+  .guessrow input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:13px 18px;outline:none}
+  .guessrow input:focus{border-color:var(--gold)}
+  .mic{width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:var(--panel2);display:grid;place-items:center;cursor:pointer;flex:none}
+  .mic svg{width:20px;height:20px}
+  .mic.on{background:var(--bad);border-color:var(--bad);animation:pulse 1.2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,90,95,.55)}100%{box-shadow:0 0 0 14px rgba(255,90,95,0)}}
+  .sugg{position:absolute;left:0;right:110px;top:54px;background:var(--panel2);border:1px solid var(--line);border-radius:14px;overflow:hidden;z-index:5;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+  .sugg div{padding:11px 16px;cursor:pointer;border-bottom:1px solid var(--line)}
+  .sugg div:last-child{border-bottom:0}
+  .sugg div:hover,.sugg div.active{background:#2a2a2f}
+  .micstatus{min-height:22px;margin-top:10px;font-size:14px;color:var(--muted);text-align:center}
+  .actions{display:flex;gap:10px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20;animation:fade .2s}
+  @keyframes fade{from{opacity:0}}
+  .modal{width:100%;max-width:440px;max-height:92vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:22px;animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes pop{from{transform:scale(.85);opacity:0}}
+  .banner{padding:16px 20px;font-family:"Archivo Black";font-size:24px;display:flex;align-items:center;gap:10px}
+  .banner.good{background:linear-gradient(90deg,rgba(60,207,122,.25),transparent);color:var(--good)}
+  .banner.bad{background:linear-gradient(90deg,rgba(255,90,95,.25),transparent);color:var(--bad)}
+  .yourguess{padding:0 20px;color:var(--muted);font-size:14px;margin-top:-6px;margin-bottom:6px}
+  .yourguess b{color:var(--text)}
+  .artwrap{position:relative;margin:14px 20px;border-radius:14px;overflow:hidden;aspect-ratio:1}
+  .artwrap img{width:100%;height:100%;object-fit:cover;display:block}
+  .info{padding:0 20px 6px}
+  .info h2{margin:4px 0 2px;font-size:24px;line-height:1.15}
+  .info .artist{color:var(--gold);font-weight:600;margin-bottom:12px}
+  .grid{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+  .grid dt{color:var(--muted)}
+  .grid dd{margin:0}
+  .modal .actions{padding:16px 20px 20px;margin:0}
+  .modal .actions .btn{flex:1;min-width:130px;text-align:center;text-decoration:none}
+  .note{font-size:12px;color:var(--muted);text-align:center;margin-top:18px;line-height:1.5}
+  .err{color:var(--bad)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>GUESS THE <span>DRAKE</span> SONG</h1>
+    <div class="stats">
+      <div class="stat"><b id="sScore">0/0</b><small>Score</small></div>
+      <div class="stat"><b id="sStreak">0</b><small>Streak</small></div>
+      <div class="stat"><b id="sBest">0</b><small>Best</small></div>
+    </div>
+  </header>
+
+  <!-- Loading -->
+  <section id="scrLoad" class="card center">
+    <div class="spinner"></div>
+    <div id="loadText">Pulling Drake's discography…</div>
+    <div class="loadbar"><i id="loadBar"></i></div>
+  </section>
+
+  <!-- Error -->
+  <section id="scrErr" class="card center hidden">
+    <p class="err" style="font-weight:700;font-size:18px;margin-top:0">Couldn't load the songs</p>
+    <p class="muted" id="errText">Check your internet connection and try again.</p>
+    <button class="btn btn-gold" id="retryBtn">Retry</button>
+  </section>
+
+  <!-- Start -->
+  <section id="scrStart" class="card center hidden">
+    <p style="font-size:18px;margin-top:0"><b id="countSongs">0</b> songs loaded from <b id="countReleases">0</b> releases</p>
+    <p class="muted">A song starts playing and loops until you guess. Type it, pick from the list, or hit the mic and say it.</p>
+    <label class="check"><input type="checkbox" id="optSingles" checked> Include singles &amp; EPs</label>
+    <button class="btn btn-gold" id="startBtn" style="font-size:18px;padding:14px 40px">Start</button>
+    <p class="note" id="refreshNote"></p>
+  </section>
+
+  <!-- Game -->
+  <section id="scrGame" class="card hidden">
+    <div class="qmark">ROUND <span id="roundNo">1</span> · NAME THAT SONG</div>
+    <div class="viz paused" id="viz"></div>
+    <div class="progress"><i id="prog"></i></div>
+    <div class="controls">
+      <button class="play" id="playBtn" aria-label="Play or pause"></button>
+      <div class="vol">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 10v4h4l5 4V6L7 10H3zm13.5 2a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
+        <input type="range" id="vol" min="0" max="100" value="70" aria-label="Volume">
+        <span id="volVal" class="muted" style="width:34px;text-align:right;font-size:13px">70</span>
+      </div>
+    </div>
+
+    <form class="guessrow" id="guessForm" autocomplete="off">
+      <input id="guess" placeholder="Type the song name…" aria-label="Your guess">
+      <button type="button" class="mic" id="micBtn" title="Say the song name" aria-label="Guess with microphone">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+      </button>
+      <button type="submit" class="btn btn-gold">Guess</button>
+      <div class="sugg hidden" id="sugg"></div>
+    </form>
+    <div class="micstatus" id="micStatus"></div>
+    <div class="actions">
+      <button class="btn btn-ghost" id="giveUpBtn">Give up</button>
+    </div>
+  </section>
+
+  <p class="note">Song previews, album art and info come from Apple's public iTunes catalog.</p>
+</div>
+
+<!-- Result modal -->
+<div class="overlay hidden" id="overlay">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="banner" id="banner"></div>
+    <div class="yourguess" id="yourGuess"></div>
+    <div class="artwrap"><img id="mArt" alt="Album cover"></div>
+    <div class="info">
+      <h2 id="mTitle"></h2>
+      <div class="artist" id="mArtist"></div>
+      <dl class="grid" id="mGrid"></dl>
+    </div>
+    <div class="actions">
+      <button class="btn btn-gold" id="nextBtn">Next song →</button>
+      <a class="btn btn-ghost" id="mApple" target="_blank" rel="noopener">Apple Music</a>
+      <a class="btn btn-ghost" id="mSpotify" target="_blank" rel="noopener">Spotify</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const ARTIST_ID = 271256;           // Drake's iTunes artist ID
+  const CACHE_KEY = 'drakeGuess_catalog_v1';
+  const CACHE_MS  = 24 * 60 * 60 * 1000;
+
+  const $ = s => document.querySelector(s);
+  const show = id => ['#scrLoad','#scrErr','#scrStart','#scrGame'].forEach(s => $(s).classList.toggle('hidden', s !== id));
+  const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  /* ---------- text matching ---------- */
+  function splitTitle(name) {
+    let feat = [];
+    const core = name.replace(/\s*[\(\[]\s*(feat\.?|ft\.?|featuring|with)\s+([^\)\]]*)[\)\]]/gi, (_, __, who) => { feat.push(who.trim()); return ''; }).trim();
+    return { core, feat: feat.join(', ') };
+  }
+  function normalize(s) {
+    return String(s).toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[\(\[]\s*(feat\.?|ft\.?|featuring|with)\s[^\)\]]*[\)\]]/g, ' ')
+      .replace(/[’'`]/g, '')
+      .replace(/&/g, ' and ')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/^the /, '')
+      .trim();
+  }
+  function lev(a, b) {
+    if (a === b) return 0;
+    const m = a.length, n = b.length;
+    if (!m) return n; if (!n) return m;
+    let prev = Array.from({length: n + 1}, (_, j) => j), cur = new Array(n + 1);
+    for (let i = 1; i <= m; i++) {
+      cur[0] = i;
+      for (let j = 1; j <= n; j++)
+        cur[j] = Math.min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+      [prev, cur] = [cur, prev];
+    }
+    return prev[n];
+  }
+  function sim(a, b) {
+    if (!a || !b) return 0;
+    const r1 = 1 - lev(a, b) / Math.max(a.length, b.length);
+    const A = a.replace(/ /g, ''), B = b.replace(/ /g, '');
+    const r2 = 1 - lev(A, B) / Math.max(A.length, B.length);
+    let s = Math.max(r1, r2);
+    // spoken phrase containing the title, e.g. "i think it's hotline bling"
+    if (b.length >= 4 && (' ' + a + ' ').includes(' ' + b + ' ')) s = Math.max(s, 0.92);
+    return s;
+  }
+  function bestMatch(text, songs) {
+    const g = normalize(text);
+    let best = null, score = 0;
+    for (const s of songs) {
+      const sc = sim(g, s.key);
+      if (sc > score) { score = sc; best = s; }
+    }
+    return { song: best, score };
+  }
+
+  /* ---------- iTunes JSONP ---------- */
+  function jsonp(url, timeout = 15000) {
+    return new Promise((resolve, reject) => {
+      const cb = '__it' + Math.random().toString(36).slice(2);
+      const s = document.createElement('script');
+      const done = () => { clearTimeout(t); window[cb] = () => {}; s.remove(); };
+      const t = setTimeout(() => { done(); reject(new Error('timeout')); }, timeout);
+      window[cb] = data => { done(); resolve(data); };
+      s.onerror = () => { done(); reject(new Error('network')); };
+      s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
+      document.head.appendChild(s);
+    });
+  }
+  // Try a normal fetch first (works where Apple sends CORS headers), fall back to JSONP.
+  let mode = 'fetch';
+  const errLog = [];
+  async function getJSON(url) {
+    if (mode === 'fetch') {
+      try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return await r.json();
+      } catch (e) {
+        errLog.push('fetch: ' + e.message);
+        mode = 'jsonp';
+      }
+    }
+    return jsonp(url);
+  }
+  async function jsonpRetry(url) {
+    try { return await getJSON(url); }
+    catch (e) { errLog.push(mode + ': ' + e.message); await sleep(2500); return getJSON(url); }
+  }
+
+  function setLoad(text, pct) { $('#loadText').textContent = text; if (pct != null) $('#loadBar').style.width = pct + '%'; }
+
+  async function fetchCatalog() {
+    setLoad('Finding Drake\'s releases…', 5);
+    const res = await jsonpRetry(`https://itunes.apple.com/lookup?id=${ARTIST_ID}&entity=album&limit=200`);
+    const cols = (res.results || []).filter(r =>
+      r.wrapperType === 'collection' &&
+      /drake/i.test(r.artistName || '') &&
+      r.collectionExplicitness !== 'cleaned' &&
+      !/instrumental|karaoke|tribute/i.test(r.collectionName || ''));
+    if (!cols.length) throw new Error('No releases found');
+    const colsById = new Map(cols.map(c => [c.collectionId, c]));
+
+    // pack album IDs into batches so each lookup stays under the 200-result cap
+    const batches = []; let cur = [], sum = 0;
+    for (const c of cols) {
+      const n = (c.trackCount || 20) + 1;
+      if (cur.length && (sum + n > 150 || cur.length >= 25)) { batches.push(cur); cur = []; sum = 0; }
+      cur.push(c.collectionId); sum += n;
+    }
+    if (cur.length) batches.push(cur);
+
+    const tracks = []; let failed = 0;
+    for (let i = 0; i < batches.length; i++) {
+      setLoad(`Loading tracks… (${i + 1}/${batches.length})`, 10 + 85 * (i / batches.length));
+      try {
+        const r = await jsonpRetry(`https://itunes.apple.com/lookup?id=${batches[i].join(',')}&entity=song&limit=200`);
+        for (const t of r.results || []) if (t.wrapperType === 'track') tracks.push(t);
+      } catch { failed++; }
+      await sleep(350);
+    }
+    setLoad('Shuffling…', 100);
+    const songs = buildSongs(tracks, colsById);
+    if (!songs.length) throw new Error('No playable songs found');
+    return { songs, releases: cols.length, failed };
+  }
+
+  function buildSongs(tracks, colsById) {
+    const byKey = new Map();
+    for (const t of tracks) {
+      if (t.kind !== 'song' || !t.previewUrl || !t.trackName) continue;
+      if (!/drake/i.test(t.artistName || '')) continue;
+      if (/instrumental|a ?cappella|acapella|sped up|slowed|\bremix\b|\bedit\b/i.test(t.trackName)) continue;
+      if (t.trackTimeMillis && t.trackTimeMillis < 60000) continue; // skits / short interludes
+      const col = colsById.get(t.collectionId) || {};
+      const { core, feat } = splitTitle(t.trackName);
+      const key = normalize(core);
+      if (!key) continue;
+      const rawAlbum = t.collectionName || col.collectionName || '';
+      const type = /\s-\sEP$/i.test(rawAlbum) ? 'EP' : /\s-\sSingle$/i.test(rawAlbum) ? 'Single' : (col.collectionType === 'Compilation' ? 'Compilation' : 'Album');
+      const song = {
+        key, title: core, fullTitle: t.trackName, feat,
+        artist: t.artistName,
+        album: rawAlbum.replace(/\s-\s(Single|EP)$/i, ''),
+        type, isSingle: type === 'Single' || type === 'EP',
+        date: t.releaseDate || col.releaseDate || '',
+        trackNo: t.trackNumber, trackCount: t.trackCount, disc: t.discNumber, discCount: t.discCount,
+        ms: t.trackTimeMillis, genre: t.primaryGenreName,
+        explicit: t.trackExplicitness === 'explicit',
+        art: (t.artworkUrl100 || col.artworkUrl100 || '').replace(/\/\d+x\d+bb\./, '/600x600bb.'),
+        preview: t.previewUrl,
+        link: t.trackViewUrl || col.collectionViewUrl || ''
+      };
+      const prev = byKey.get(key);
+      if (!prev || better(song, prev)) byKey.set(key, song);
+    }
+    return [...byKey.values()];
+  }
+  // prefer the album version over a single, then the original (earliest) release, then explicit
+  function better(a, b) {
+    if (a.isSingle !== b.isSingle) return !a.isSingle;
+    if (a.date !== b.date) return a.date < b.date;
+    return a.explicit && !b.explicit;
+  }
+
+  async function loadCatalog(force) {
+    show('#scrLoad');
+    if (!force) {
+      try {
+        const c = JSON.parse(lsGet(CACHE_KEY) || 'null');
+        if (c && Date.now() - c.t < CACHE_MS && c.songs && c.songs.length) return c;
+      } catch {}
+    }
+    const data = await fetchCatalog();
+    data.t = Date.now();
+    if (!data.failed) lsSet(CACHE_KEY, JSON.stringify(data));
+    return data;
+  }
+
+  /* ---------- game state ---------- */
+  const audio = new Audio();
+  audio.loop = true; audio.preload = 'auto';
+  let catalog = [], pool = [], deck = [], current = null, roundOver = true;
+  const stats = { score: 0, played: 0, streak: 0, best: +(lsGet('drakeGuess_best') || 0) };
+
+  function renderStats() {
+    $('#sScore').textContent = `${stats.score}/${stats.played}`;
+    $('#sStreak').textContent = stats.streak;
+    $('#sBest').textContent = stats.best;
+  }
+
+  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+  // visualizer bars
+  const viz = $('#viz');
+  for (let i = 0; i < 26; i++) {
+    const b = document.createElement('span');
+    b.style.setProperty('--h', (35 + Math.random() * 65) + '%');
+    b.style.animationDelay = (-Math.random()).toFixed(2) + 's';
+    b.style.animationDuration = (0.6 + Math.random() * 0.8).toFixed(2) + 's';
+    viz.appendChild(b);
+  }
+
+  const ICON_PLAY  = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
+  function syncPlayUI() {
+    const playing = !audio.paused;
+    $('#playBtn').innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
+    viz.classList.toggle('paused', !playing);
+  }
+  audio.addEventListener('play', syncPlayUI);
+  audio.addEventListener('pause', syncPlayUI);
+  audio.addEventListener('timeupdate', () => {
+    if (audio.duration) $('#prog').style.width = (100 * audio.currentTime / audio.duration) + '%';
+  });
+  audio.addEventListener('error', () => {
+    // if a preview fails to load, quietly skip to another song
+    if (!roundOver) { $('#micStatus').textContent = 'That preview wouldn\'t load, skipping…'; setTimeout(nextRound, 800); }
+  });
+
+  function togglePlay() { if (audio.paused) audio.play().catch(() => {}); else audio.pause(); }
+  $('#playBtn').addEventListener('click', togglePlay);
+
+  // volume
+  let baseVol = Math.min(100, Math.max(0, +(lsGet('drakeGuess_vol') ?? 70)));
+  $('#vol').value = baseVol; $('#volVal').textContent = baseVol;
+  const applyVol = (duck) => { audio.volume = (baseVol / 100) * (duck ? 0.2 : 1); };
+  applyVol(false);
+  $('#vol').addEventListener('input', e => {
+    baseVol = +e.target.value; $('#volVal').textContent = baseVol;
+    applyVol(listening); lsSet('drakeGuess_vol', baseVol);
+  });
+
+  function startGame() {
+    pool = $('#optSingles').checked ? catalog.slice() : catalog.filter(s => !s.isSingle);
+    if (!pool.length) pool = catalog.slice();
+    deck = shuffle(pool.slice());
+    show('#scrGame');
+    nextRound();
+  }
+
+  function nextRound() {
+    closeModal();
+    if (!deck.length) deck = shuffle(pool.slice());
+    current = deck.pop();
+    roundOver = false;
+    $('#roundNo').textContent = stats.played + 1;
+    $('#guess').value = '';
+    $('#micStatus').textContent = '';
+    hideSugg();
+    $('#prog').style.width = '0';
+    audio.src = current.preview;
+    audio.currentTime = 0;
+    applyVol(false);
+    audio.play().catch(() => { syncPlayUI(); $('#micStatus').textContent = 'Tap ▶ to start the song.'; });
+    if (window.matchMedia('(pointer:fine)').matches) $('#guess').focus();
+  }
+
+  function submitGuess(text, viaVoice) {
+    if (roundOver || !current) return;
+    text = (text || '').trim();
+    if (!text) return;
+    const { song, score } = bestMatch(text, catalog);
+    const correct = !!song && song.key === current.key && score >= 0.75;
+    endRound(correct ? 'correct' : 'wrong', viaVoice && song && score >= 0.6 ? song.title : text);
+  }
+
+  function endRound(result, guessText) {
+    roundOver = true;
+    stopListening();
+    hideSugg();
+    stats.played++;
+    if (result === 'correct') {
+      stats.score++; stats.streak++;
+      if (stats.streak > stats.best) { stats.best = stats.streak; lsSet('drakeGuess_best', stats.best); }
+    } else stats.streak = 0;
+    renderStats();
+    openModal(result, guessText);
+  }
+
+  /* ---------- result modal ---------- */
+  function fmtDate(d) { if (!d) return '—'; const x = new Date(d); return isNaN(x) ? '—' : x.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }); }
+  function fmtTime(ms) { if (!ms) return '—'; const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
+
+  function openModal(result, guessText) {
+    const s = current;
+    const b = $('#banner');
+    if (result === 'correct') { b.className = 'banner good'; b.textContent = '✓ Correct!'; }
+    else if (result === 'skip') { b.className = 'banner bad'; b.textContent = '⏭ Skipped'; }
+    else { b.className = 'banner bad'; b.textContent = '✗ Not quite'; }
+    $('#yourGuess').innerHTML = guessText ? `You guessed: <b>${esc(guessText)}</b>` : '';
+    $('#mArt').src = s.art;
+    $('#mTitle').textContent = s.title;
+    $('#mArtist').textContent = s.artist;
+    const rows = [
+      ['Album', `${s.album}${s.type !== 'Album' ? ` (${s.type})` : ''}`],
+      s.feat ? ['Featuring', s.feat] : null,
+      ['Released', fmtDate(s.date)],
+      s.trackNo ? ['Track', `${s.trackNo}${s.trackCount ? ' of ' + s.trackCount : ''}${s.discCount > 1 ? ` · Disc ${s.disc}` : ''}`] : null,
+      ['Length', fmtTime(s.ms)],
+      s.genre ? ['Genre', s.genre] : null,
+      s.explicit ? ['Rating', 'Explicit'] : null
+    ].filter(Boolean);
+    $('#mGrid').innerHTML = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('');
+    $('#mApple').href = s.link || `https://music.apple.com/search?term=${encodeURIComponent('Drake ' + s.title)}`;
+    $('#mSpotify').href = `https://open.spotify.com/search/${encodeURIComponent(s.title + ' Drake')}`;
+    $('#overlay').classList.remove('hidden');
+    $('#nextBtn').focus();
+  }
+  function closeModal() { $('#overlay').classList.add('hidden'); }
+  $('#nextBtn').addEventListener('click', nextRound);
+
+  /* ---------- typing + suggestions ---------- */
+  let suggIdx = -1;
+  function hideSugg() { $('#sugg').classList.add('hidden'); suggIdx = -1; }
+  function renderSugg() {
+    const q = normalize($('#guess').value);
+    const box = $('#sugg');
+    if (q.length < 2) return hideSugg();
+    const hits = catalog
+      .filter(s => s.key.includes(q) || s.key.replace(/ /g, '').includes(q.replace(/ /g, '')))
+      .sort((a, b) => (a.key.startsWith(q) ? 0 : 1) - (b.key.startsWith(q) ? 0 : 1) || a.title.length - b.title.length)
+      .slice(0, 6);
+    if (!hits.length) return hideSugg();
+    suggIdx = -1;
+    box.innerHTML = hits.map(s => `<div data-t="${esc(s.title)}">${esc(s.title)}</div>`).join('');
+    box.classList.remove('hidden');
+  }
+  $('#guess').addEventListener('input', renderSugg);
+  $('#guess').addEventListener('keydown', e => {
+    const items = [...$('#sugg').children];
+    if ($('#sugg').classList.contains('hidden') || !items.length) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      suggIdx = (suggIdx + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+      items.forEach((el, i) => el.classList.toggle('active', i === suggIdx));
+    } else if (e.key === 'Enter' && suggIdx >= 0) {
+      e.preventDefault();
+      $('#guess').value = items[suggIdx].dataset.t; hideSugg();
+    } else if (e.key === 'Escape') hideSugg();
+  });
+  $('#sugg').addEventListener('mousedown', e => {
+    const d = e.target.closest('div[data-t]'); if (!d) return;
+    e.preventDefault(); $('#guess').value = d.dataset.t; hideSugg(); $('#guess').focus();
+  });
+  $('#guess').addEventListener('blur', () => setTimeout(hideSugg, 150));
+  $('#guessForm').addEventListener('submit', e => { e.preventDefault(); submitGuess($('#guess').value, false); });
+  $('#giveUpBtn').addEventListener('click', () => { if (!roundOver) endRound('skip', ''); });
+
+  /* ---------- microphone (Web Speech API) ---------- */
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null, listening = false;
+  if (!SR) {
+    $('#micBtn').title = 'Voice guessing needs Chrome, Edge or Safari';
+    $('#micBtn').style.opacity = '.4';
+  }
+  function stopListening() {
+    if (rec) { try { rec.abort(); } catch {} }
+    rec = null; listening = false;
+    $('#micBtn').classList.remove('on');
+    applyVol(false);
+  }
+  function startListening() {
+    if (!SR) { $('#micStatus').textContent = 'Voice guessing isn\'t supported in this browser. Try Chrome, Edge or Safari.'; return; }
+    if (roundOver) return;
+    rec = new SR();
+    rec.lang = 'en-US';
+    rec.interimResults = true;
+    rec.maxAlternatives = 5;
+    rec.continuous = false;
+    listening = true;
+    $('#micBtn').classList.add('on');
+    applyVol(true); // turn the song down so the mic can hear you
+    $('#micStatus').textContent = '🎙️ Listening… say the song name';
+    let handled = false;
+    rec.onresult = e => {
+      const r = e.results[e.results.length - 1];
+      $('#micStatus').textContent = `Heard: “${r[0].transcript}”`;
+      if (!r.isFinal || handled) return;
+      handled = true;
+      let best = { song: null, score: 0 }, heard = r[0].transcript;
+      for (let i = 0; i < r.length; i++) {
+        const m = bestMatch(r[i].transcript, catalog);
+        if (m.score > best.score) { best = m; heard = r[i].transcript; }
+      }
+      stopListening();
+      if (best.song && best.score >= 0.6) {
+        $('#guess').value = best.song.title;
+        submitGuess(best.song.title, true);
+      } else {
+        $('#micStatus').textContent = `Heard “${heard}” but that doesn't match a Drake song. Try again.`;
+      }
+    };
+    rec.onerror = e => {
+      const msg = {
+        'not-allowed': 'Microphone access was blocked. Allow it in your browser settings.',
+        'service-not-allowed': 'Microphone access was blocked. Allow it in your browser settings.',
+        'no-speech': 'Didn\'t hear anything. Tap the mic and try again.',
+        'audio-capture': 'No microphone found.',
+        'network': 'Voice recognition needs an internet connection.'
+      }[e.error];
+      if (msg) $('#micStatus').textContent = msg;
+      stopListening();
+    };
+    rec.onend = () => { if (listening && !handled) { stopListening(); if ($('#micStatus').textContent.startsWith('🎙️')) $('#micStatus').textContent = 'Didn\'t catch that. Tap the mic and try again.'; } };
+    try { rec.start(); } catch { stopListening(); }
+  }
+  $('#micBtn').addEventListener('click', () => listening ? stopListening() : startListening());
+
+  // keyboard: space toggles play when not typing
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'Space' && !$('#scrGame').classList.contains('hidden')) { e.preventDefault(); togglePlay(); }
+    if (e.key === 'Enter' && !$('#overlay').classList.contains('hidden')) { e.preventDefault(); nextRound(); }
+  });
+
+  /* ---------- boot ---------- */
+  async function boot(force) {
+    try {
+      const data = await loadCatalog(force);
+      catalog = data.songs;
+      $('#countSongs').textContent = catalog.length;
+      $('#countReleases').textContent = data.releases;
+      $('#refreshNote').innerHTML = data.failed
+        ? `Some releases didn't load (Apple rate-limits requests). <a href="#" id="reload" style="color:var(--gold)">Reload</a>`
+        : `Catalog cached for 24h. <a href="#" id="reload" style="color:var(--gold)">Refresh now</a>`;
+      $('#reload').addEventListener('click', e => { e.preventDefault(); boot(true); });
+      show('#scrStart');
+    } catch (err) {
+      errLog.push('final: ' + err.message);
+      let hint = 'Check your connection and try again. If you reloaded a lot, wait a minute (Apple rate-limits requests).';
+      if (window.self !== window.top || !/^(https?|file):$/.test(location.protocol))
+        hint = 'It looks like this is open inside a preview, which blocks internet access. Open the file in Chrome, Edge or Safari instead.';
+      $('#errText').innerHTML = `${esc(hint)}<br><br><small style="opacity:.7">Details: ${esc(errLog.slice(-3).join(' · '))} · ${esc(location.protocol)}</small>`;
+      show('#scrErr');
+    }
+  }
+  $('#retryBtn').addEventListener('click', () => boot(true));
+  $('#startBtn').addEventListener('click', startGame);
+  renderStats(); syncPlayUI();
+  boot(false);
+
+  // exposed for testing
+  window.__drakeGuess = { normalize, splitTitle, sim, bestMatch, buildSongs };
+})();
+</script>
+</body>
+</html>
