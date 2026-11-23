@@ -77,11 +77,29 @@
   @keyframes fade{from{opacity:0}}
   .modal{width:100%;max-width:440px;max-height:92vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:22px;animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
   @keyframes pop{from{transform:scale(.85);opacity:0}}
-  .banner{padding:16px 20px;font-family:"Archivo Black";font-size:24px;display:flex;align-items:center;gap:10px}
-  .banner.good{background:linear-gradient(90deg,rgba(60,207,122,.25),transparent);color:var(--good)}
-  .banner.bad{background:linear-gradient(90deg,rgba(255,90,95,.25),transparent);color:var(--bad)}
-  .yourguess{padding:0 20px;color:var(--muted);font-size:14px;margin-top:-6px;margin-bottom:6px}
-  .yourguess b{color:var(--text)}
+  .modal.good{border:3px solid var(--good);box-shadow:0 0 60px rgba(60,207,122,.45)}
+  .modal.bad{border:3px solid var(--bad);box-shadow:0 0 60px rgba(255,90,95,.45);animation:pop .35s cubic-bezier(.2,1.4,.4,1),shake .45s .3s}
+  @keyframes shake{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+  .banner{padding:22px 20px 18px;text-align:center;color:#fff}
+  .banner.good{background:var(--good)}
+  .banner.bad{background:var(--bad)}
+  .banner .icon{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.95);display:grid;place-items:center;margin:0 auto 10px;font-size:38px;font-weight:900;line-height:1}
+  .banner.good .icon{color:var(--good)}
+  .banner.bad .icon{color:var(--bad)}
+  .banner .big{font-family:"Archivo Black";font-size:34px;letter-spacing:1px;line-height:1}
+  .banner .sub{margin-top:6px;font-weight:600;opacity:.95}
+  .compare{margin:16px 20px 0;display:grid;gap:8px}
+  .compare div{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;font-size:15px}
+  .compare small{color:var(--muted);width:96px;flex:none;font-size:12px;text-transform:uppercase;letter-spacing:.6px}
+  .compare .ok{background:rgba(60,207,122,.14);border:1px solid rgba(60,207,122,.5)}
+  .compare .no{background:rgba(255,90,95,.14);border:1px solid rgba(255,90,95,.5)}
+  .compare .no b{text-decoration:line-through;text-decoration-color:var(--bad);text-decoration-thickness:2px}
+  .compare .tag{margin-left:auto;font-weight:900;font-size:18px}
+  .compare .ok .tag{color:var(--good)} .compare .no .tag{color:var(--bad)}
+  .flash{position:fixed;inset:0;pointer-events:none;z-index:19;animation:flash .7s forwards}
+  @keyframes flash{from{opacity:.55}to{opacity:0}}
+  .confetti{position:fixed;top:-12px;width:9px;height:14px;z-index:30;pointer-events:none;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
   .artwrap{position:relative;margin:14px 20px;border-radius:14px;overflow:hidden;aspect-ratio:1}
   .artwrap img{width:100%;height:100%;object-fit:cover;display:block}
   .info{padding:0 20px 6px}
@@ -92,6 +110,17 @@
   .grid dd{margin:0}
   .modal .actions{padding:16px 20px 20px;margin:0}
   .modal .actions .btn{flex:1;min-width:130px;text-align:center;text-decoration:none}
+  body.extreme{--gold:#ff4d3d;--gold2:#ff8a5c;background:radial-gradient(900px 500px at 50% -10%, rgba(255,77,61,.2), transparent 60%),var(--bg)}
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+  .mode{background:var(--panel2);border:2px solid var(--line);border-radius:16px;padding:18px 14px;cursor:pointer;text-align:center;transition:border-color .15s,transform .08s}
+  .mode:hover{border-color:#d9b25f}
+  .mode:active{transform:scale(.97)}
+  .mode.extreme{border-color:rgba(255,77,61,.5);background:linear-gradient(180deg,rgba(255,77,61,.14),var(--panel2))}
+  .mode.extreme:hover{border-color:#ff4d3d}
+  .mname{display:block;font-family:"Archivo Black";font-size:20px;margin-bottom:6px}
+  .mode.extreme .mname{color:#ff6a4d}
+  .mdesc{display:block;font-size:13px;color:var(--muted);line-height:1.4}
+  .badge{background:var(--gold);color:#fff;border-radius:6px;padding:2px 8px;margin-right:8px;font-size:12px}
   .note{font-size:12px;color:var(--muted);text-align:center;margin-top:18px;line-height:1.5}
   .err{color:var(--bad)}
 </style>
@@ -126,13 +155,22 @@
     <p style="font-size:18px;margin-top:0"><b id="countSongs">0</b> songs loaded from <b id="countReleases">0</b> releases</p>
     <p class="muted">A song starts playing and loops until you guess. Type it, pick from the list, or hit the mic and say it.</p>
     <label class="check"><input type="checkbox" id="optSingles" checked> Include singles &amp; EPs</label>
-    <button class="btn btn-gold" id="startBtn" style="font-size:18px;padding:14px 40px">Start</button>
+    <div class="modes">
+      <button class="mode" data-mode="normal">
+        <span class="mname">Normal</span>
+        <span class="mdesc">The 30-second preview loops until you guess</span>
+      </button>
+      <button class="mode extreme" data-mode="extreme">
+        <span class="mname">🔥 Extreme</span>
+        <span class="mdesc">You only get the first 2 seconds. Good luck.</span>
+      </button>
+    </div>
     <p class="note" id="refreshNote"></p>
   </section>
 
   <!-- Game -->
   <section id="scrGame" class="card hidden">
-    <div class="qmark">ROUND <span id="roundNo">1</span> · NAME THAT SONG</div>
+    <div class="qmark"><span id="modeBadge" class="badge hidden">EXTREME · 2 SEC</span>ROUND <span id="roundNo">1</span> · NAME THAT SONG</div>
     <div class="viz paused" id="viz"></div>
     <div class="progress"><i id="prog"></i></div>
     <div class="controls">
@@ -155,6 +193,7 @@
     <div class="micstatus" id="micStatus"></div>
     <div class="actions">
       <button class="btn btn-ghost" id="giveUpBtn">Give up</button>
+      <button class="btn btn-ghost" id="menuBtn">Change mode</button>
     </div>
   </section>
 
@@ -163,9 +202,9 @@
 
 <!-- Result modal -->
 <div class="overlay hidden" id="overlay">
-  <div class="modal" role="dialog" aria-modal="true">
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-live="assertive">
     <div class="banner" id="banner"></div>
-    <div class="yourguess" id="yourGuess"></div>
+    <div class="compare" id="compare"></div>
     <div class="artwrap"><img id="mArt" alt="Album cover"></div>
     <div class="info">
       <h2 id="mTitle"></h2>
@@ -256,24 +295,24 @@
     });
   }
   // Try a normal fetch first (works where Apple sends CORS headers), fall back to JSONP.
-  let mode = 'fetch';
+  let netMode = 'fetch';
   const errLog = [];
   async function getJSON(url) {
-    if (mode === 'fetch') {
+    if (netMode === 'fetch') {
       try {
         const r = await fetch(url, { cache: 'no-store' });
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return await r.json();
       } catch (e) {
         errLog.push('fetch: ' + e.message);
-        mode = 'jsonp';
+        netMode = 'jsonp';
       }
     }
     return jsonp(url);
   }
   async function jsonpRetry(url) {
     try { return await getJSON(url); }
-    catch (e) { errLog.push(mode + ': ' + e.message); await sleep(2500); return getJSON(url); }
+    catch (e) { errLog.push(netMode + ': ' + e.message); await sleep(2500); return getJSON(url); }
   }
 
   function setLoad(text, pct) { $('#loadText').textContent = text; if (pct != null) $('#loadBar').style.width = pct + '%'; }
@@ -369,7 +408,15 @@
   const audio = new Audio();
   audio.loop = true; audio.preload = 'auto';
   let catalog = [], pool = [], deck = [], current = null, roundOver = true;
-  const stats = { score: 0, played: 0, streak: 0, best: +(lsGet('drakeGuess_best') || 0) };
+  const CLIP_SECONDS = 2;
+  const bestKey = m => m === 'extreme' ? 'drakeGuess_best_extreme' : 'drakeGuess_best';
+  const allStats = {
+    normal:  { score: 0, played: 0, streak: 0, best: +(lsGet(bestKey('normal')) || 0) },
+    extreme: { score: 0, played: 0, streak: 0, best: +(lsGet(bestKey('extreme')) || 0) }
+  };
+  let mode = 'normal';
+  let stats = allStats.normal;
+  const clipActive = () => mode === 'extreme' && !roundOver;
 
   function renderStats() {
     $('#sScore').textContent = `${stats.score}/${stats.played}`;
@@ -399,8 +446,15 @@
   audio.addEventListener('play', syncPlayUI);
   audio.addEventListener('pause', syncPlayUI);
   audio.addEventListener('timeupdate', () => {
-    if (audio.duration) $('#prog').style.width = (100 * audio.currentTime / audio.duration) + '%';
+    if (!clipActive() && audio.duration) $('#prog').style.width = (100 * audio.currentTime / audio.duration) + '%';
   });
+  // Extreme mode: keep jumping back to the start once the clip passes 2 seconds.
+  // Checked every 25ms because 'timeupdate' only fires about 4 times a second.
+  setInterval(() => {
+    if (!clipActive()) return;
+    if (!audio.paused && audio.currentTime >= CLIP_SECONDS) audio.currentTime = 0;
+    $('#prog').style.width = Math.min(100, 100 * audio.currentTime / CLIP_SECONDS) + '%';
+  }, 25);
   audio.addEventListener('error', () => {
     // if a preview fails to load, quietly skip to another song
     if (!roundOver) { $('#micStatus').textContent = 'That preview wouldn\'t load, skipping…'; setTimeout(nextRound, 800); }
@@ -419,8 +473,13 @@
     applyVol(listening); lsSet('drakeGuess_vol', baseVol);
   });
 
-  function startGame() {
-    pool = $('#optSingles').checked ? catalog.slice() : catalog.filter(s => !s.isSingle);
+  function startGame(m) {
+    mode = m;
+    stats = allStats[mode];
+    document.body.classList.toggle('extreme', mode === 'extreme');
+    $('#modeBadge').classList.toggle('hidden', mode !== 'extreme');
+    renderStats();
+    pool =$('#optSingles').checked ? catalog.slice() : catalog.filter(s => !s.isSingle);
     if (!pool.length) pool = catalog.slice();
     deck = shuffle(pool.slice());
     show('#scrGame');
@@ -460,7 +519,7 @@
     stats.played++;
     if (result === 'correct') {
       stats.score++; stats.streak++;
-      if (stats.streak > stats.best) { stats.best = stats.streak; lsSet('drakeGuess_best', stats.best); }
+      if (stats.streak > stats.best) { stats.best = stats.streak; lsSet(bestKey(mode), stats.best); }
     } else stats.streak = 0;
     renderStats();
     openModal(result, guessText);
@@ -472,11 +531,18 @@
 
   function openModal(result, guessText) {
     const s = current;
+    const good = result === 'correct';
     const b = $('#banner');
-    if (result === 'correct') { b.className = 'banner good'; b.textContent = '✓ Correct!'; }
-    else if (result === 'skip') { b.className = 'banner bad'; b.textContent = '⏭ Skipped'; }
-    else { b.className = 'banner bad'; b.textContent = '✗ Not quite'; }
-    $('#yourGuess').innerHTML = guessText ? `You guessed: <b>${esc(guessText)}</b>` : '';
+    b.className = 'banner ' + (good ? 'good' : 'bad');
+    const big = good ? 'CORRECT!' : result === 'skip' ? 'SKIPPED' : 'WRONG';
+    const sub = good ? `Nice, streak: ${stats.streak} 🔥` : result === 'skip' ? 'Here\'s what it was' : 'Better luck next round';
+    b.innerHTML = `<div class="icon">${good ? '✓' : '✗'}</div><div class="big">${big}</div><div class="sub">${esc(sub)}</div>`;
+    $('#modal').className = 'modal ' + (good ? 'good' : 'bad');
+    $('#compare').innerHTML = good
+      ? `<div class="ok"><small>Your guess</small><b>${esc(s.title)}</b><span class="tag">✓</span></div>`
+      : (guessText ? `<div class="no"><small>Your guess</small><b>${esc(guessText)}</b><span class="tag">✗</span></div>` : '') +
+        `<div class="ok"><small>Right answer</small><b>${esc(s.title)}</b><span class="tag">✓</span></div>`;
+    celebrate(good);
     $('#mArt').src = s.art;
     $('#mTitle').textContent = s.title;
     $('#mArtist').textContent = s.artist;
@@ -494,6 +560,44 @@
     $('#mSpotify').href = `https://open.spotify.com/search/${encodeURIComponent(s.title + ' Drake')}`;
     $('#overlay').classList.remove('hidden');
     $('#nextBtn').focus();
+  }
+  // screen flash, confetti on a win, and a short sound cue
+  let actx = null;
+  function beep(freqs, type) {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      freqs.forEach((f, i) => {
+        const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime + i * 0.12;
+        o.type = type; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.25 * (baseVol / 100 + 0.1), t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+        o.connect(g).connect(actx.destination); o.start(t); o.stop(t + 0.3);
+      });
+    } catch {}
+  }
+  function celebrate(good) {
+    const f = document.createElement('div');
+    f.className = 'flash';
+    f.style.background = good ? 'var(--good)' : 'var(--bad)';
+    document.body.appendChild(f);
+    setTimeout(() => f.remove(), 800);
+    if (good) {
+      beep([523, 659, 784], 'triangle');
+      const colors = ['#3ccf7a', '#d9b25f', '#f1d38f', '#ffffff', '#5fb8ff'];
+      for (let i = 0; i < 70; i++) {
+        const c = document.createElement('div');
+        c.className = 'confetti';
+        c.style.left = Math.random() * 100 + 'vw';
+        c.style.background = colors[i % colors.length];
+        c.style.animationDuration = (1.6 + Math.random() * 1.6) + 's';
+        c.style.animationDelay = (Math.random() * 0.3) + 's';
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 3600);
+      }
+    } else {
+      beep([220, 160], 'sawtooth');
+    }
   }
   function closeModal() { $('#overlay').classList.add('hidden'); }
   $('#nextBtn').addEventListener('click', nextRound);
@@ -624,7 +728,12 @@
     }
   }
   $('#retryBtn').addEventListener('click', () => boot(true));
-  $('#startBtn').addEventListener('click', startGame);
+  document.querySelectorAll('.mode').forEach(b => b.addEventListener('click', () => startGame(b.dataset.mode)));
+  $('#menuBtn').addEventListener('click', () => {
+    stopListening(); audio.pause(); roundOver = true; closeModal();
+    document.body.classList.remove('extreme');
+    show('#scrStart');
+  });
   renderStats(); syncPlayUI();
   boot(false);
 
