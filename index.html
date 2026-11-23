@@ -110,6 +110,8 @@
   .grid dd{margin:0}
   .modal .actions{padding:16px 20px 20px;margin:0}
   .modal .actions .btn{flex:1;min-width:130px;text-align:center;text-decoration:none}
+  .modal a.btn-ghost{color:var(--text)}
+  .artwrap{max-width:280px;margin-left:auto!important;margin-right:auto!important}
   body.extreme{--gold:#ff4d3d;--gold2:#ff8a5c;background:radial-gradient(900px 500px at 50% -10%, rgba(255,77,61,.2), transparent 60%),var(--bg)}
   .modes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
   .mode{background:var(--panel2);border:2px solid var(--line);border-radius:16px;padding:18px 14px;cursor:pointer;text-align:center;transition:border-color .15s,transform .08s}
@@ -121,6 +123,34 @@
   .mode.extreme .mname{color:#ff6a4d}
   .mdesc{display:block;font-size:13px;color:var(--muted);line-height:1.4}
   .badge{background:var(--gold);color:#fff;border-radius:6px;padding:2px 8px;margin-right:8px;font-size:12px}
+  .small{font-size:13px}
+  .tabs{display:flex;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px;margin:-4px 0 20px}
+  .tab{flex:1;border:0;background:transparent;border-radius:999px;padding:10px;font-weight:700;color:var(--muted);cursor:pointer}
+  .tab.active{background:var(--text);color:#111}
+  .pill{font-size:11px;background:var(--line);color:var(--text);border-radius:99px;padding:2px 7px;margin-left:4px;vertical-align:1px}
+  .tab.active .pill{background:#111;color:#fff}
+  .albhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .albbtns{display:flex;gap:6px}
+  .btn.sm{padding:7px 12px;font-size:13px}
+  .alblist{display:grid;gap:6px}
+  .alb{display:flex;align-items:center;gap:12px;padding:8px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);cursor:pointer;user-select:none;transition:opacity .15s,border-color .15s}
+  .alb img{width:48px;height:48px;border-radius:8px;object-fit:cover;flex:none;background:#222}
+  .alb .t{flex:1;min-width:0}
+  .alb .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .alb .t span{font-size:12px;color:var(--muted)}
+  .alb.off{opacity:.38}
+  .alb.on{border-color:rgba(217,178,95,.45)}
+  .alb .box{width:24px;height:24px;border-radius:7px;border:2px solid var(--line);display:grid;place-items:center;flex:none;font-weight:900;color:#111}
+  .alb.on .box{background:var(--gold);border-color:var(--gold)}
+  .switch{position:relative;width:48px;height:28px;flex:none}
+  .switch input{opacity:0;width:0;height:0}
+  .switch span{position:absolute;inset:0;background:var(--line);border-radius:99px;cursor:pointer;transition:background .15s}
+  .switch span::before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .15s}
+  .switch input:checked+span{background:var(--gold)}
+  .switch input:checked+span::before{transform:translateX(20px)}
+  .singlesbox{margin-top:4px}
+  .singlesbox summary{cursor:pointer;color:var(--muted);font-size:14px;padding:6px 0 10px}
+  .singlesbox.disabled{opacity:.4;pointer-events:none}
   .note{font-size:12px;color:var(--muted);text-align:center;margin-top:18px;line-height:1.5}
   .err{color:var(--bad)}
 </style>
@@ -152,9 +182,33 @@
 
   <!-- Start -->
   <section id="scrStart" class="card center hidden">
-    <p style="font-size:18px;margin-top:0"><b id="countSongs">0</b> songs loaded from <b id="countReleases">0</b> releases</p>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="play" role="tab">Play</button>
+      <button class="tab" data-tab="albums" role="tab">Albums <span id="albumCount" class="pill"></span></button>
+    </div>
+
+    <div id="tabAlbums" class="hidden" style="text-align:left">
+      <div class="albhead">
+        <div><b>Albums &amp; mixtapes</b><div class="muted small">Tap to turn on or off</div></div>
+        <div class="albbtns"><button class="btn btn-ghost sm" id="allOn">All on</button><button class="btn btn-ghost sm" id="allOff">All off</button></div>
+      </div>
+      <div id="albumList" class="alblist"></div>
+
+      <div class="albhead" style="margin-top:22px">
+        <div><b>Singles &amp; EPs</b><div class="muted small" id="singlesSub"></div></div>
+        <label class="switch"><input type="checkbox" id="optSingles" checked><span></span></label>
+      </div>
+      <details class="singlesbox">
+        <summary>Choose individual singles &amp; EPs</summary>
+        <div id="singleList" class="alblist"></div>
+      </details>
+      <button class="btn btn-gold" id="doneAlbums" style="width:100%;margin-top:18px">Done</button>
+    </div>
+
+    <div id="tabPlay">
+    <p style="font-size:18px;margin-top:0"><b id="countSongs">0</b> songs in play <span class="muted" style="font-size:14px">(of <span id="countTotal">0</span> from <span id="countReleases">0</span> releases)</span></p>
     <p class="muted">A song starts playing and loops until you guess. Type it, pick from the list, or hit the mic and say it.</p>
-    <label class="check"><input type="checkbox" id="optSingles" checked> Include singles &amp; EPs</label>
+    <p class="err small hidden" id="emptyPool">No songs selected. Turn on at least one album in the Albums tab.</p>
     <div class="modes">
       <button class="mode" data-mode="normal">
         <span class="mname">Normal</span>
@@ -166,6 +220,7 @@
       </button>
     </div>
     <p class="note" id="refreshNote"></p>
+    </div>
   </section>
 
   <!-- Game -->
@@ -222,7 +277,7 @@
 <script>
 (() => {
   const ARTIST_ID = 271256;           // Drake's iTunes artist ID
-  const CACHE_KEY = 'drakeGuess_catalog_v1';
+  const CACHE_KEY = 'drakeGuess_catalog_v2';
   const CACHE_MS  = 24 * 60 * 60 * 1000;
 
   const $ = s => document.querySelector(s);
@@ -376,7 +431,8 @@
         explicit: t.trackExplicitness === 'explicit',
         art: (t.artworkUrl100 || col.artworkUrl100 || '').replace(/\/\d+x\d+bb\./, '/600x600bb.'),
         preview: t.previewUrl,
-        link: t.trackViewUrl || col.collectionViewUrl || ''
+        link: t.trackViewUrl || col.collectionViewUrl || '',
+        cid: t.collectionId
       };
       const prev = byKey.get(key);
       if (!prev || better(song, prev)) byKey.set(key, song);
@@ -473,14 +529,95 @@
     applyVol(listening); lsSet('drakeGuess_vol', baseVol);
   });
 
+  /* ---------- album picker ---------- */
+  const relKey = s => String(s.cid ?? s.album);
+  let disabled = new Set();
+  try { disabled = new Set(JSON.parse(lsGet('drakeGuess_disabled') || '[]').map(String)); } catch {}
+  const saveDisabled = () => lsSet('drakeGuess_disabled', JSON.stringify([...disabled]));
+  $('#optSingles').checked = lsGet('drakeGuess_singles') !== '0';
+  const singlesOn = () => $('#optSingles').checked;
+  let releases = [];
+
+  function buildPool() {
+    return catalog.filter(s => !disabled.has(relKey(s)) && (!s.isSingle || singlesOn()));
+  }
+  function buildReleases() {
+    const m = new Map();
+    for (const s of catalog) {
+      const k = relKey(s);
+      if (!m.has(k)) m.set(k, { k, name: s.album, type: s.type, isSingle: s.isSingle, date: s.date, art: s.art, count: 0 });
+      const r = m.get(k);
+      r.count++;
+      if (s.date && (!r.date || s.date < r.date)) r.date = s.date;
+    }
+    return [...m.values()].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  }
+  function rowHTML(r) {
+    const on = !disabled.has(r.k);
+    const thumb = (r.art || '').replace(/\/\d+x\d+bb\./, '/120x120bb.');
+    const year = r.date ? new Date(r.date).getFullYear() : '';
+    return `<div class="alb ${on ? 'on' : 'off'}" data-k="${esc(r.k)}" role="checkbox" aria-checked="${on}" tabindex="0">
+      <img loading="lazy" src="${esc(thumb)}" alt="">
+      <div class="t"><b>${esc(r.name)}</b><span>${esc([r.type, year, r.count + (r.count === 1 ? ' song' : ' songs')].filter(Boolean).join(' · '))}</span></div>
+      <div class="box">${on ? '✓' : ''}</div></div>`;
+  }
+  function renderAlbums() {
+    releases = buildReleases();
+    $('#albumList').innerHTML = releases.filter(r => !r.isSingle).map(rowHTML).join('');
+    $('#singleList').innerHTML = releases.filter(r => r.isSingle).map(rowHTML).join('');
+    updateCounts();
+  }
+  function updateCounts() {
+    const albums = releases.filter(r => !r.isSingle);
+    const singles = releases.filter(r => r.isSingle);
+    const albumsOn = albums.filter(r => !disabled.has(r.k)).length;
+    const singleSongs = singles.reduce((n, r) => n + r.count, 0);
+    const poolSize = buildPool().length;
+    $('#albumCount').textContent = `${albumsOn}/${albums.length}`;
+    $('#countSongs').textContent = poolSize;
+    $('#countReleases').textContent = releases.length;
+    const pl = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+    $('#singlesSub').textContent = `${pl(singles.length, 'release')} · ${pl(singleSongs, 'song')} not on any album`;
+    $('.singlesbox').classList.toggle('disabled', !singlesOn());
+    if (poolSize) $('#emptyPool').classList.add('hidden');
+  }
+  function toggleRow(el) {
+    const k = el.dataset.k;
+    if (disabled.has(k)) disabled.delete(k); else disabled.add(k);
+    const on = !disabled.has(k);
+    el.className = 'alb ' + (on ? 'on' : 'off');
+    el.setAttribute('aria-checked', on);
+    el.querySelector('.box').textContent = on ? '✓' : '';
+    saveDisabled(); updateCounts();
+  }
+  ['#albumList', '#singleList'].forEach(id => {
+    $(id).addEventListener('click', e => { const el = e.target.closest('.alb'); if (el) toggleRow(el); });
+    $(id).addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && e.target.classList.contains('alb')) { e.preventDefault(); toggleRow(e.target); } });
+  });
+  function setAllAlbums(on) {
+    for (const r of releases) if (!r.isSingle) { if (on) disabled.delete(r.k); else disabled.add(r.k); }
+    saveDisabled(); renderAlbums();
+  }
+  $('#allOn').addEventListener('click', () => setAllAlbums(true));
+  $('#allOff').addEventListener('click', () => setAllAlbums(false));
+  $('#optSingles').addEventListener('change', () => { lsSet('drakeGuess_singles', singlesOn() ? '1' : '0'); updateCounts(); });
+
+  function setTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    $('#tabPlay').classList.toggle('hidden', name !== 'play');
+    $('#tabAlbums').classList.toggle('hidden', name !== 'albums');
+  }
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => setTab(t.dataset.tab)));
+  $('#doneAlbums').addEventListener('click', () => setTab('play'));
+
   function startGame(m) {
+    if (!buildPool().length) { $('#emptyPool').classList.remove('hidden'); return; }
     mode = m;
     stats = allStats[mode];
     document.body.classList.toggle('extreme', mode === 'extreme');
     $('#modeBadge').classList.toggle('hidden', mode !== 'extreme');
     renderStats();
-    pool =$('#optSingles').checked ? catalog.slice() : catalog.filter(s => !s.isSingle);
-    if (!pool.length) pool = catalog.slice();
+    pool = buildPool();
     deck = shuffle(pool.slice());
     show('#scrGame');
     nextRound();
@@ -559,7 +696,8 @@
     $('#mApple').href = s.link || `https://music.apple.com/search?term=${encodeURIComponent('Drake ' + s.title)}`;
     $('#mSpotify').href = `https://open.spotify.com/search/${encodeURIComponent(s.title + ' Drake')}`;
     $('#overlay').classList.remove('hidden');
-    $('#nextBtn').focus();
+    $('#modal').scrollTop = 0;
+    try { $('#nextBtn').focus({ preventScroll: true }); } catch {}
   }
   // screen flash, confetti on a win, and a short sound cue
   let actx = null;
@@ -711,8 +849,8 @@
     try {
       const data = await loadCatalog(force);
       catalog = data.songs;
-      $('#countSongs').textContent = catalog.length;
-      $('#countReleases').textContent = data.releases;
+      $('#countTotal').textContent = catalog.length;
+      renderAlbums();
       $('#refreshNote').innerHTML = data.failed
         ? `Some releases didn't load (Apple rate-limits requests). <a href="#" id="reload" style="color:var(--gold)">Reload</a>`
         : `Catalog cached for 24h. <a href="#" id="reload" style="color:var(--gold)">Refresh now</a>`;
